@@ -1,0 +1,29 @@
+{
+  "exported_at": "2026-09-25T15:09:01+00:00",
+  "producer": "scripts/export_traces.py",
+  "source": "phoenix",
+  "phoenix_spans": 2445,
+  "mirror_spans": 2445,
+  "files": {
+    "jsonl": "traces/phoenix_spans.jsonl",
+    "parquet": "traces/phoenix_spans.parquet"
+  },
+  "parquet_error": null,
+  "spans": 2445,
+  "runs": 55,
+  "llm_spans": 386,
+  "tool_spans": 99,
+  "tools_seen": [
+    "check_coverage",
+    "get_patient_record",
+    "list_available_slots",
+    "search_care_policy"
+  ],
+  "checks": {
+    "has_full_run": true,
+    "max_agents_in_one_run": 9,
+    "multiple_agents_in_a_run": true,
+    "every_tool_called": true,
+    "latencies_present": true
+  }
+}

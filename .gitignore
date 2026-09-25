@@ -1,0 +1,33 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# regenerable local state (never commit: may hold session state)
+data/chroma/
+data/state/
+*.sqlite
+*.sqlite-*
+*.db
+!tests/fixtures/*.sqlite
+
+# phoenix local working dir
+.phoenix/
+
+# deepeval cache
+.deepeval/
+.deepeval*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

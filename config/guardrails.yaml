@@ -1,0 +1,35 @@
+max_input_chars: 2000
+injection_block_score: 0.6   # >= this -> block
+confidence_clarify_below: 0.45
+allowed_intents: [schedule, referral, coverage_question, admin, clinical_question, urgent, ambiguous, out_of_scope]
+
+injection_patterns:
+  - "ignore (all |any )?(previous|prior|above) (instructions|rules|prompts)"
+  - "disregard (all |any )?(previous|prior|your) (instructions|rules)"
+  - "you are now"
+  - "system prompt"
+  - "developer mode"
+  - "act as (a |an )?(admin|administrator|doctor|system)"
+  - "reveal (your|the) (instructions|prompt|rules)"
+  - "</?untrusted_patient_input"
+  - "(show|give|print|dump|list) (me )?(all|every|another|other) (patient|record)s?"
+  - "(show|give|print|dump) .*record of"
+  - "override (the )?(policy|rules|guardrails)"
+  - "jailbreak"
+  - "pretend (you are|to be)"
+
+diagnosis_request_patterns:
+  - "what do i have"
+  - "diagnos"
+  - "what('s| is) wrong with me"
+  - "is (it|this) (cancer|serious|a tumou?r)"
+  - "what (disease|condition|illness)"
+  - "(which|what) (medication|medicine|drug|dose)"
+
+# Output side: language that would amount to offering a diagnosis
+diagnosis_output_patterns:
+  - '\byou (likely |probably |may |might |could )?(have|are suffering from|are showing signs of) (a |an )?(\w+ ){0,2}\w*(itis|oma|osis|emia|pathy|infection|disease|disorder|syndrome|cancer|tumou?r|fracture|allergy)\b'
+  - '\bdiagnos(is|ed|e) (is|of|with)\b'
+  - '\bthis (is|looks like|sounds like) (likely |probably |definitely )?(a |an )?\w+(itis|oma|osis|emia|pathy)\b'
+  - '\byour condition is\b'
+  - '\btake \d+ ?mg\b'

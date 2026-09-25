@@ -1,0 +1,11 @@
+2026-09-25T15:37:02+00:00 === tests/test_memory_persistence.py :: cross-session recall (fresh process-level instances) ===
+2026-09-25T15:37:02+00:00 stores: checkpoints=test_cross_session_and_cross_r0/checkpoints.sqlite memory=test_cross_session_and_cross_r0/memory.sqlite
+2026-09-25T15:37:02+00:00 [instance-1] session=S-A patient_ref=PT-c1adbdb1 action=schedule slot=2026-09-28T09:30 (morning)
+2026-09-25T15:37:02+00:00 [instance-1] thread=S-THREAD turn-1 pathway=CP-MSK-002
+2026-09-25T15:37:02+00:00 [instance-1] long-term items stored for P11: ['Scheduling preference: prefers morning appointments.', 'Books appointments on behalf of their daughter (age 6).', 'Previous visit 2026-09-25: schedule request (PEDS) -> schedule via CP-PEDS-001.']
+2026-09-25T15:37:02+00:00 [instance-1] closed (all SQLite connections released)
+2026-09-25T15:37:03+00:00 [instance-2] NEW session=S-B recalled=['Books appointments on behalf of their daughter (age 6).', 'Scheduling preference: prefers morning appointments.', 'Previous visit 2026-09-25: schedule request (PEDS) -> schedule via CP-PEDS-001.']
+2026-09-25T15:37:03+00:00 [instance-2] slot=2026-09-28T09:30 period=morning msg='I can offer an appointment at Childrens Clinic on 2026-09-28 at 09:30 (matching your preference for mornings). A member of the care team will confirm the booking with you.'
+2026-09-25T15:37:03+00:00 [instance-2] other patient session=S-C recalled=[]
+2026-09-25T15:37:03+00:00 [instance-2] SAME thread=S-THREAD turn-2 pathway=CP-MSK-002 slot_period=afternoon
+2026-09-25T15:37:03+00:00 RESULT: PASS - long-term recall across sessions, patient isolation, short-term thread recall across restart

@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-09-25T15:09:15+00:00",
+  "command": "python scripts/regenerate_all.py",
+  "mode": "gemini",
+  "files": {
+    "logs/tool_calls.jsonl": {
+      "present": true,
+      "bytes": 109271,
+      "rows": 99,
+      "producer": "src/tools/logging_middleware.py",
+      "sha256": "7fdd6ed153c08fcfde76a5c293fde0d50d2130e50609aa89f9ef7c0b7056b3b2"
+    },
+    "logs/agent_actions.jsonl": {
+      "present": true,
+      "bytes": 135127,
+      "rows": 395,
+      "producer": "src/audit/audit.py",
+      "sha256": "380e314b842a5d78b822eba24427021a75f956028e9ddcaa723aa73fbfe88ccf"
+    },
+    "logs/mcp_transcript.jsonl": {
+      "present": true,
+      "bytes": 104217,
+      "rows": 180,
+      "producer": "mcp_server/server.py + src/tools/logging_middleware.py",
+      "sha256": "097fb966c2655c599a78ebf763221e3fea3c0dec3d0ed301ff8d3c86326189dc"
+    },
+    "logs/memory_test.log": {
+      "present": true,
+      "bytes": 1674,
+      "rows": 11,
+      "producer": "tests/test_memory_persistence.py",
+      "sha256": "6b16be59e010896214abe7c68a9fe210926271d6559a00f21fabc7b2b5ad2933"
+    },
+    "traces/otel_spans_live.jsonl": {
+      "present": true,
+      "bytes": 10348227,
+      "rows": 2445,
+      "producer": "src/observability/tracing.py",
+      "sha256": "77ba1b526999ee06343e99e5f3b0d3498b12cd03e6c48666cb59bd181aabbb86"
+    },
+    "traces/phoenix_spans.jsonl": {
+      "present": true,
+      "bytes": 10309804,
+      "rows": 2445,
+      "producer": "scripts/export_traces.py",
+      "sha256": "f625c2667d53272484b4909c32e330598e4c5b9f94cc024943148e35e0cd56d8"
+    },
+    "traces/phoenix_spans.parquet": {
+      "present": true,
+      "bytes": 1939726,
+      "rows": null,
+      "producer": "scripts/export_traces.py",
+      "sha256": "f167230097576081de21eb7bde8474599cdd04a67c2dfd7cf7bcb761e0441578"
+    },
+    "traces/export_manifest.json": {
+      "present": true,
+      "bytes": 693,
+      "rows": null,
+      "producer": "scripts/export_traces.py",
+      "sha256": "734224d05839051c5348a60581ca4849b7f609952a10e2638efd1e7913cb5da9"
+    },
+    "reports/demo_outputs.jsonl": {
+      "present": true,
+      "bytes": 18407,
+      "rows": 16,
+      "producer": "scripts/run_demo.py",
+      "sha256": "774bad94147166ee15de58138cf23f608be2033e8be0c1e84b0692b88dcca614"
+    },
+    "reports/eval_report.json": {
+      "present": true,
+      "bytes": 60999,
+      "rows": null,
+      "producer": "scripts/run_eval.py",
+      "sha256": "2b3bbe25471527c3dee4bd2f7abe556de830612c889a15e84362855e786938c8"
+    },
+    "reports/redteam_results.json": {
+      "present": true,
+      "bytes": 7952,
+      "rows": null,
+      "producer": "scripts/run_redteam.py",
+      "sha256": "27a7c552a6f307a822829d6b40ad8619dbcc7352aa3462927bed253ce68a8dba"
+    },
+    "reports/golden_signals.json": {
+      "present": true,
+      "bytes": 4506,
+      "rows": null,
+      "producer": "scripts/golden_signals.py",
+      "sha256": "b776d65515d757a43775e1d523cce686b5ca649fba43fd174a859ede615c020b"
+    },
+    "reports/dashboard_data.csv": {
+      "present": true,
+      "bytes": 410694,
+      "rows": 2446,
+      "producer": "scripts/dashboard.py",
+      "sha256": "a0b65bf9fe35f74049426bf2c7b2e753a3601b6e29c0e3f41cdabe16579c4b55"
+    },
+    "reports/dashboard_chart.png": {
+      "present": true,
+      "bytes": 69826,
+      "rows": null,
+      "producer": "scripts/dashboard.py",
+      "sha256": "c57949dd5c311fdd4ba31e5a822dbc8f588c858699a43a52fab53a4f5d3685f1"
+    },
+    "reports/dashboard.png": {
+      "present": true,
+      "bytes": 183522,
+      "rows": null,
+      "producer": "scripts/capture_dashboard.py (Phoenix UI screenshot)",
+      "sha256": "a212eeced605f675113c12e3124da0204d17370607e88b87a22430f01a4b9db4"
+    },
+    "reports/citation_check.json": {
+      "present": true,
+      "bytes": 235,
+      "rows": null,
+      "producer": "scripts/verify_citations.py",
+      "sha256": "c08d1a9d52510721309d1d3955fb34143997521536da8d70ea36d4dc316f59ff"
+    }
+  }
+}

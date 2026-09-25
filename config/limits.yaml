@@ -1,0 +1,15 @@
+# Loop / cascade guards and resilience settings (NFR-04)
+recursion_limit: 25          # LangGraph super-step cap per request
+max_worker_calls: 8          # supervisor decisions per request before forced escalation
+rag_max_rounds: 3            # agentic-RAG retrieve->grade->rewrite rounds
+rag_top_k: 4
+tool_timeout_s: 10
+tool_retries: 2              # retries after the first attempt (timeouts / transient errors)
+llm_timeout_s: 60
+llm_retries: 3
+circuit_breaker_failures: 3   # consecutive failed LLM calls (per model tier) before the breaker opens
+circuit_breaker_cooldown_s: 120
+gemini_rpm: 12                # client-side cap per model (free tier quota is 15 requests/minute/model)
+summary_trigger_tokens: 1200 # summarization middleware kicks in above this history size
+summary_keep_messages: 4
+chunk_max_tokens: 350        # compress: per-chunk cap passed to the LLM

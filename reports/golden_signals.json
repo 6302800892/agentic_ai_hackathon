@@ -1,0 +1,210 @@
+{
+  "generated_at": "2026-09-25T15:09:01+00:00",
+  "producer": "scripts/golden_signals.py",
+  "sources": {
+    "spans": "traces/phoenix_spans.parquet",
+    "span_source": "phoenix",
+    "eval_report": "reports/eval_report.json",
+    "tool_log": "logs/tool_calls.jsonl",
+    "pricing": "config/pricing.yaml",
+    "pricing_as_of": "2026-09-25"
+  },
+  "traffic": {
+    "runs": 55,
+    "spans": 2445,
+    "llm_calls": 386,
+    "tool_calls": 99
+  },
+  "latency_ms": {
+    "end_to_end": {
+      "n": 55,
+      "p50": 6085.51,
+      "p95": 47573.24,
+      "max": 145342.54,
+      "mean": 12196.25
+    },
+    "by_category": {
+      "thinking": {
+        "n": 386,
+        "p50": 1527.23,
+        "p95": 5733.77,
+        "max": 63151.35,
+        "mean": 2753.9
+      },
+      "acting": {
+        "n": 459,
+        "p50": 12.46,
+        "p95": 4331.85,
+        "max": 85782.58,
+        "mean": 1457.07
+      },
+      "tool": {
+        "n": 99,
+        "p50": 9.74,
+        "p95": 16.85,
+        "max": 31.48,
+        "mean": 10.52
+      }
+    },
+    "by_agent": {
+      "care_pathway": {
+        "n": 25,
+        "p50": 1600.62,
+        "p95": 19435.88,
+        "max": 41627.71,
+        "mean": 4463.59
+      },
+      "clarify": {
+        "n": 4,
+        "p50": 1.85,
+        "p95": 2.24,
+        "max": 2.25,
+        "mean": 1.8
+      },
+      "context_prep": {
+        "n": 40,
+        "p50": 11.73,
+        "p95": 46.1,
+        "max": 130.81,
+        "mean": 18.92
+      },
+      "coordinator": {
+        "n": 25,
+        "p50": 1932.6,
+        "p95": 17939.05,
+        "max": 19648.94,
+        "mean": 4449.75
+      },
+      "coverage_checker": {
+        "n": 22,
+        "p50": 30.15,
+        "p95": 39.27,
+        "max": 61.43,
+        "mean": 29.85
+      },
+      "human_escalation": {
+        "n": 11,
+        "p50": 1.61,
+        "p95": 2.77,
+        "max": 3.2,
+        "mean": 1.75
+      },
+      "input_guard": {
+        "n": 55,
+        "p50": 5.11,
+        "p95": 11.01,
+        "max": 29.45,
+        "mean": 6.05
+      },
+      "intake_classifier": {
+        "n": 40,
+        "p50": 1752.42,
+        "p95": 31104.08,
+        "max": 85782.58,
+        "mean": 6015.99
+      },
+      "memory_write": {
+        "n": 40,
+        "p50": 1453.13,
+        "p95": 30438.42,
+        "max": 30746.48,
+        "mean": 5037.64
+      },
+      "output_guard": {
+        "n": 55,
+        "p50": 17.7,
+        "p95": 31.73,
+        "max": 74.2,
+        "mean": 19.91
+      },
+      "refusal": {
+        "n": 15,
+        "p50": 0.81,
+        "p95": 1.07,
+        "max": 1.08,
+        "mean": 0.83
+      },
+      "supervisor": {
+        "n": 127,
+        "p50": 6.16,
+        "p95": 17.54,
+        "max": 33.13,
+        "mean": 7.37
+      }
+    },
+    "by_tool": {
+      "tool.check_coverage": {
+        "n": 22,
+        "p50": 13.08,
+        "p95": 15.5,
+        "max": 23.85,
+        "mean": 12.73
+      },
+      "tool.get_patient_record": {
+        "n": 22,
+        "p50": 12.67,
+        "p95": 19.67,
+        "max": 31.48,
+        "mean": 13.93
+      },
+      "tool.list_available_slots": {
+        "n": 15,
+        "p50": 12.72,
+        "p95": 14.74,
+        "max": 14.77,
+        "mean": 12.13
+      },
+      "tool.search_care_policy": {
+        "n": 40,
+        "p50": 6.0,
+        "p95": 9.33,
+        "max": 23.68,
+        "mean": 6.82
+      }
+    }
+  },
+  "tokens": {
+    "prompt": 178152,
+    "completion": 33603,
+    "total": 211755,
+    "per_run_avg": 3850.1,
+    "by_model": {
+      "gemini-3.5-flash-lite": 211755
+    },
+    "by_agent": {
+      "care_pathway": 14653,
+      "coordinator": 19281,
+      "intake_classifier": 26687,
+      "memory_write": 28839,
+      "unknown": 122295
+    }
+  },
+  "cost_usd": {
+    "total": 0.137453,
+    "per_run_avg": 0.002499,
+    "by_model": {
+      "gemini-3.5-flash-lite": 0.137453
+    },
+    "by_agent": {
+      "care_pathway": 0.006048,
+      "coordinator": 0.012822,
+      "intake_classifier": 0.01678,
+      "memory_write": 0.013032,
+      "unknown": 0.088771
+    }
+  },
+  "errors": {
+    "error_span_rate": 0.0008,
+    "tool_status_counts": {
+      "ok": 99
+    }
+  },
+  "quality": {
+    "accuracy": 1.0,
+    "intent_accuracy": 1.0,
+    "action_accuracy": 1.0,
+    "escalation_recall": 1.0,
+    "hallucination_rate": 0.0,
+    "judge_status": "ran"
+  }
+}

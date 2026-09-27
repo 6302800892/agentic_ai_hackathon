@@ -41,7 +41,7 @@
 | Agentic RAG | `src/tools/rag_tool.py`, `src/agents/care_pathway.py` | Chroma + MiniLM; retrieve → grade → rewrite (≤3 rounds) + targeted rule retrieval |
 | Context engineering | `src/context/` | write, select, compress, isolate, summarization, quarantine |
 | Memory | `src/memory/short_term.py`, `src/memory/long_term.py` | Thread checkpoints; per-patient semantic memories (LangMem + rules) |
-| Guardrails | `src/guardrails/` | ingress + input guard, output guard + risk tiers, PHI |
+| Guardrails | `src/guardrails/` | ingress + input guard, output guard + risk tiers, PHI (Presidio + deterministic recognisers). Implemented as policy functions, which the brief explicitly permits ("Guardrails-AI / LLM Guard validators (or policy functions)"). An optional LLM Guard `PromptInjection` hook in `src/context/quarantine.py` activates automatically when `llm-guard` is installed. `llm-guard` currently can't be installed on Python 3.13 / Windows because its `sentencepiece` dependency fails to build; use Python 3.11–3.12 to enable it. |
 | Observability | `src/observability/tracing.py`, `src/observability/spans.py` | OpenInference LangChain instrumentor, masking exporter, span categories |
 | Audit | `src/audit/audit.py` | `logs/agent_actions.jsonl` |
 | Interfaces | `src/cli.py`, `src/api/app.py` | CLI (run / chat / forget); FastAPI SSE streaming (bonus) |

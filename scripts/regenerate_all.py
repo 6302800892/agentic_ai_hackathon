@@ -116,7 +116,25 @@ def main() -> int:
     ap.add_argument("--skip-tests", action="store_true")
     ap.add_argument("--reports-only", action="store_true",
                     help="re-run steps 5-10 on the evidence of the last run (no reset, no agent calls)")
+    ap.add_argument("--allow-rules-only", action="store_true",
+                    help="regenerate even without GOOGLE_API_KEY (replaces Gemini evidence with rules-only evidence)")
     a = ap.parse_args()
+
+    # Guard: without a Gemini key a full regeneration would overwrite the committed Gemini-mode evidence with
+    # rules-only results (no LLM spans, tokens, cost or judge metrics). Refuse unless explicitly allowed.
+    if not a.reports_only and not get_settings().has_llm and not a.allow_rules_only:
+        manifest_path = REPORTS / "manifest.json"
+        committed_mode = json.loads(manifest_path.read_text(encoding="utf-8")).get("mode") if manifest_path.exists() else None
+        if committed_mode == "gemini":
+            print("\n".join([
+                "GOOGLE_API_KEY is not set, and the committed evidence was produced in Gemini mode.",
+                "A full regeneration now would replace it with rules-only evidence. Options:",
+                "  python scripts/regenerate_all.py --reports-only      # rebuild reports from the committed run",
+                "  python -m src.cli run --input data/samples/intake_requests.jsonl   # run the copilot (rules-only)",
+                "  pytest -q                                            # offline agent tests",
+                "  python scripts/regenerate_all.py --allow-rules-only  # overwrite with rules-only evidence",
+            ]))
+            return 2
 
     from src.observability.tracing import flush, init_tracing, phoenix_url
     if a.reports_only:

@@ -19,6 +19,9 @@ All models are Google Gemini, the only provider used.
 | Coordinator wording (the decision itself is rule-based) | `GEMINI_MODEL` (default `gemini-3.5-flash`) | temperature 0, structured output `DraftText` |
 | Evaluation judge (DeepEval) | `GEMINI_MODEL` | `scripts/run_eval.py::make_judge` |
 
+**API key.** The committed evidence came from a Gemini run on 2026-09-25. Reviewing it, running the tests and running
+the copilot in rules-only mode need no key (README → "Running without a Gemini API key").
+
 **Run configuration used for the committed evidence.** Both tiers used `gemini-3.5-flash-lite`: the
 `gemini-3.5-flash` quota for the key was exhausted (see `docs/failure-analysis.md` F-05). `system_model` and
 `judge_model` in `reports/eval_report.json` record the models that actually ran.

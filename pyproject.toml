@@ -52,7 +52,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 api = ["fastapi>=0.110", "uvicorn>=0.29", "sse-starlette>=2.1"]
-guard = ["llm-guard>=0.3"]           # optional PromptInjection scanner (src/context/quarantine.py)
+guard = ["llm-guard>=0.3"]           # optional PromptInjection scanner (src/context/quarantine.py); Python 3.11-3.12 only on Windows (sentencepiece build)
 screenshot = ["playwright>=1.44"]    # optional: scripts/capture_dashboard.py
 
 [project.scripts]

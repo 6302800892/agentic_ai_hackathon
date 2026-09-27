@@ -28,6 +28,22 @@ cp .env.example .env                         # then set GOOGLE_API_KEY (Windows:
 The committed sample inputs are in `data/`. They are regenerable with `python scripts/generate_synthetic_data.py`
 and the output is deterministic.
 
+### Running without a Gemini API key
+
+A `GOOGLE_API_KEY` is **optional for running and checking the project**. The committed evidence (`traces/`,
+`logs/`, `reports/`) was produced in a Gemini run on 2026-09-25 (`reports/manifest.json` → `"mode": "gemini"`),
+so nothing needs to be re-run to review it.
+
+| Without a key | Works? |
+|---|---|
+| `python -m src.cli run --input data/samples/intake_requests.jsonl` | ✅ Full graph, MCP server, RAG, guardrails and memory. Model steps fall back to deterministic rules (`src/agents/heuristics.py`), marked `mode=rules-only` |
+| `pytest -q` | ✅ All agent tests. They are offline by design and never call a model |
+| `python scripts/verify_citations.py` | ✅ Citation, secret and PHI gate over the committed evidence |
+| `python scripts/regenerate_all.py --reports-only` | ✅ Rebuilds trace export, golden signals, dashboard data and manifest from the committed run, with no model calls |
+| `python scripts/run_eval.py --rescore` | ✅ Re-aggregates the committed eval report, with no model calls |
+| Full `python scripts/regenerate_all.py` | ⛔ Refuses by default: it would replace the Gemini evidence with rules-only results. Pass `--allow-rules-only` to do it anyway |
+| DeepEval LLM-as-judge, LLM token/cost signals, `scripts/optimization_benchmark.py` | Need a key |
+
 ## 1. Run the copilot (single command)
 
 ```bash
@@ -144,7 +160,7 @@ Architecture and the context-engineering map are in `docs/architecture.md`. The 
 
 | Variable | Purpose |
 |---|---|
-| `GOOGLE_API_KEY` | Gemini key. Without it, the copilot runs in **rules-only degraded mode** and the LLM-as-judge is skipped. |
+| `GOOGLE_API_KEY` | Gemini key (optional; see "Running without a Gemini API key"). Without it the copilot runs in **rules-only degraded mode**, the LLM-as-judge is skipped, and a full regeneration refuses to overwrite the committed Gemini evidence. |
 | `GEMINI_MODEL` / `GEMINI_MODEL_LIGHT` | Default `gemini-3.5-flash` / `gemini-3.5-flash-lite` (the 2.5 models are no longer available to new API keys) |
 | `PHI_HMAC_SALT` | Salt for `PT-xxxxxxxx` pseudonyms and MCP session tokens |
 | `PHOENIX_COLLECTOR_ENDPOINT` | Leave empty to launch Phoenix in-process, or point at `phoenix serve` or Phoenix Cloud (`https://app.phoenix.arize.com/s/<space>`) |

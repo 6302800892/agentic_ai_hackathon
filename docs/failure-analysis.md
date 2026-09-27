@@ -10,6 +10,9 @@ so every citation below keeps resolving. `scripts/verify_citations.py` checks th
   `context.trace_id` column.
 - `span_id` = Phoenix `context.span_id`.
 - The snapshot index is `traces/failures/index.json`.
+- **Every failure cites both** a trace (`run_id` + `span_id`) **and** a machine-generated log record: a tool-log,
+  audit or MCP-transcript line in that failure's `_logs.jsonl` snapshot in `traces/failures/`. AC-08 accepts either ("Phoenix run_id +
+  span_id (or a tool-log record)"), so each write-up is evidenced even where the trace isn't viewable in Phoenix.
 
 | ID | Failure | Layer | Severity | Status |
 |---|---|---|---|---|

@@ -1,7 +1,7 @@
 {
   "producer": "scripts/verify_citations.py",
   "checked": {
-    "paths": 325,
+    "paths": 334,
     "run_ids": 7,
     "span_ids": 12,
     "line_refs": 8

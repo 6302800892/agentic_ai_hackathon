@@ -121,8 +121,16 @@ class ChromaIndex:
 
         self.client = chromadb.PersistentClient(path=str(CHROMA_DIR))
         self.ef, self.embedder = embedding_function()
-        self.col = self.client.get_or_create_collection(COLLECTION, embedding_function=self.ef,
-                                                        metadata={"hnsw:space": "cosine"})
+        try:
+            self.col = self.client.get_or_create_collection(COLLECTION, embedding_function=self.ef,
+                                                            metadata={"hnsw:space": "cosine"})
+        except ValueError as e:
+            # the persisted index was built with a different embedder (e.g. ONNX vs Sentence-Transformers):
+            # it is regenerable, so rebuild it instead of silently degrading to keyword search
+            log.warning("Chroma index embedder changed (%s); rebuilding the index.", str(e)[:120])
+            self.client.delete_collection(COLLECTION)
+            self.col = self.client.create_collection(COLLECTION, embedding_function=self.ef,
+                                                     metadata={"hnsw:space": "cosine"})
         if self.col.count() == 0:
             self.build()
 

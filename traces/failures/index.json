@@ -208,5 +208,47 @@
       "tool.list_available_slots",
       "tool.search_care_policy"
     ]
+  },
+  "F-07": {
+    "run_id": "65f2939c1c68ea21b58b88473cf3ed79",
+    "spans": 47,
+    "log_records": 22,
+    "note": "coverage question classified ADMIN/ADMIN by Gemini; wrong service checked, admin pathway, coverage not answered",
+    "captured_at": "2026-09-27T12:09:43+00:00",
+    "span_names": [
+      "ChatGoogleGenerativeAI",
+      "LangGraph",
+      "PydanticOutputParser",
+      "RunnableSequence",
+      "TrustCall",
+      "__start__",
+      "care_pathway",
+      "check_coverage",
+      "coerce_inputs",
+      "context_prep",
+      "coordinator",
+      "copilot.request",
+      "coverage_checker",
+      "del_tool_call",
+      "enter",
+      "extract",
+      "filter_state",
+      "get_patient_record",
+      "handle_retries",
+      "input_guard",
+      "intake_classifier",
+      "list_available_slots",
+      "memory_write",
+      "output_guard",
+      "route_after_guard",
+      "search_care_policy",
+      "supervisor",
+      "supervisor_edge",
+      "tool.check_coverage",
+      "tool.get_patient_record",
+      "tool.list_available_slots",
+      "tool.search_care_policy",
+      "validate"
+    ]
   }
 }

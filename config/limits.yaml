@@ -3,6 +3,7 @@ recursion_limit: 25          # LangGraph super-step cap per request
 max_worker_calls: 8          # supervisor decisions per request before forced escalation
 rag_max_rounds: 3            # agentic-RAG retrieve->grade->rewrite rounds
 rag_top_k: 4
+rag_llm_grading: always      # always | on_rule_miss (skip the LLM grader when rules confirm the pathway; scripts/optimization_benchmark.py)
 tool_timeout_s: 10
 tool_retries: 2              # retries after the first attempt (timeouts / transient errors)
 llm_timeout_s: 60

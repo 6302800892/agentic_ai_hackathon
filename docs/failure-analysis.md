@@ -19,10 +19,19 @@ so every citation below keeps resolving. `scripts/verify_citations.py` checks th
 | F-04 | Coordinator's Gemini call failed after all retries (503 high demand), so the template wording was used | Model resilience | Low (safe fallback, slower) | Fixed (longer backoff) |
 | F-05 | `gemini-3.5-flash` quota exhausted mid-run (429), so every call burned its full retry budget and the regeneration stalled for 40+ minutes | Model resilience / cost | High (pipeline stall) | Fixed (circuit breaker + model switch) |
 | F-06 | Free-tier limit of 15 requests/minute hit on `gemini-3.5-flash-lite` (429); calls weren't paced and the provider's `retryDelay` was ignored | Cost & quota governance | High (degraded answers, stalled eval) | Fixed (rate limiter + honour `retryDelay`) |
+| F-07 | Gemini classified a coverage question about physiotherapy as ADMIN, so coverage was checked for the wrong service and the question went unanswered | Intake classification | High (mis-routing, wrong coverage check) | Fixed (service consistency check + explicit coverage answer) |
 
 F-01 to F-03 were captured in rules-only runs, so their traces contain agent and tool spans but no LLM spans.
-F-04 to F-06 were captured in Gemini-mode runs, and their snapshots contain the failing `ChatGoogleGenerativeAI`
+F-04 to F-07 were captured in Gemini-mode runs, and their snapshots contain the failing `ChatGoogleGenerativeAI`
 LLM spans.
+
+**Where each trace can be viewed.**
+- **F-06 and F-07 ran with Phoenix Cloud connected.** Their traces are in the Phoenix project
+  `patient-intake-copilot` with the same span counts as the snapshots (48 and 47). F-07 is also part of the committed
+  Phoenix export `traces/phoenix_spans.jsonl`.
+- **F-01 to F-05 ran before Phoenix was connected.** They were captured from the OpenTelemetry mirror that the same
+  tracer writes (`src/observability/tracing.py`, `JsonlSpanExporter`), so their evidence is the committed snapshot
+  in `traces/failures/`. The ids use the same trace/span format Phoenix shows.
 
 ---
 
@@ -153,6 +162,43 @@ LLM spans.
   - `tests/test_loops.py::test_retry_delay_is_read_from_provider_429` checks the delay parsing.
   - The degraded count in `logs/agent_actions.jsonl` from the rate-limited regeneration shows the effect.
 
+### F-07 — Coverage question classified as ADMIN: wrong service checked, question not answered
+
+- **Evidence.** Golden case G-18, run_id `65f2939c1c68ea21b58b88473cf3ed79` (Gemini mode, Phoenix-connected):
+  - span_id `f87228914b60c185` (`intake_classifier`) outputs `intent: coverage_question` but
+    `reason_for_visit_category: ADMIN`, `service_code: ADMIN` for *"Is physiotherapy covered by my plan?"*.
+  - The tool log record `traces/failures/F-07_logs.jsonl` line 2 shows `check_coverage` was called with
+    `service_code: ADMIN`, not `PHYSIO`.
+  - span_id `d3e574764db9770e` (`care_pathway`) then selected `CP-ADMIN-001`.
+  - The coordinator (span_id `54005b09f4cd7c2d`, audit record `traces/failures/F-07_logs.jsonl` line 15) offered a
+    front-desk slot.
+  - Snapshot: `traces/failures/F-07_spans.jsonl`.
+- **Symptom.** The patient asked whether physiotherapy is covered and got a front-desk appointment offer, with no
+  answer about coverage.
+- **Impact.** High. Coverage was verified for the wrong service (AC-02) and the request went to the wrong pathway.
+  The deterministic metrics still scored intent and action as correct, so this surfaced only through the judge's
+  answer-relevancy reason (0.25) and the Phoenix trace.
+- **Root cause.**
+  - Gemini treated a question *about coverage* as administrative. The classifier prompt didn't say that ADMIN
+    means records, billing or rescheduling only.
+  - The safety net in `src/agents/intake_classifier.py` only guarded red flags and clinical questions. Nothing
+    checked the service code against the text.
+- **Fix.**
+  - `src/agents/intake_classifier.py::apply_service_net`: when the model returns ADMIN or UNKNOWN for a schedule,
+    referral or coverage request, and the deterministic rules find a specific clinical service in the text, the
+    rules' category and service are used. The override is audited as `route` with decision `service_net_override`.
+  - `src/context/select.py` (`CLASSIFIER_SYS`) now states that ADMIN is only for records, billing or rescheduling,
+    and that a coverage question about a service uses that service's category and code.
+  - `src/agents/coordinator.py`: for a coverage question that passes the check, the first sentence now answers it
+    explicitly ("… is covered under your plan"), before any booking offer.
+- **Verification.**
+  - `tests/test_routing.py::test_service_net_corrects_admin_misclassification` checks the correction.
+  - `tests/test_routing.py::test_coverage_question_is_answered_explicitly` checks the explicit answer.
+  - The second test runs G-18's exact request through the full graph and asserts `CP-MSK-002`, `schedule`, and a
+    first sentence that states the coverage.
+  - The committed `reports/eval_report.json` predates this fix, so it still shows G-18 on the admin pathway. That
+    is the failure evidence. The next `python scripts/regenerate_all.py` produces the post-fix report.
+
 ---
 
 ## Cross-cutting lessons
@@ -165,7 +211,9 @@ LLM spans.
    (`src/context/select.py`).
 3. **Fail fast on an unhealthy dependency, and pace a healthy one.** F-04 to F-06 showed that retries alone turn a provider outage into a
    pipeline stall. A circuit breaker bounds the total cost, and a rate limiter keeps the pipeline inside its quota.
-4. **Capture before fixing.** Evidence is snapshotted with `scripts/capture_failure.py` before the code changes.
+4. **Deterministic metrics can pass while the answer is wrong.** F-07 scored "correct" on intent and action. The
+   LLM-as-judge relevancy reason and the Phoenix trace exposed it. Both layers of evaluation are needed.
+5. **Capture before fixing.** Evidence is snapshotted with `scripts/capture_failure.py` before the code changes.
 
 ## Adding a failure (Gemini-mode runs)
 

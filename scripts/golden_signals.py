@@ -40,7 +40,8 @@ def pct(s: pd.Series) -> dict:
             "max": round(float(s.max()), 2), "mean": round(float(s.mean()), 2)}
 
 
-def compute(spans_path: Path | None = None) -> dict:
+def compute(spans_path: Path | None = None, out: Path | None = None, span_source: str | None = None,
+            tool_log: Path | None = None) -> dict:
     path = spans_path or spans_file()
     df = load_spans(path)
     manifest_path = TRACES / "export_manifest.json"
@@ -52,7 +53,7 @@ def compute(spans_path: Path | None = None) -> dict:
     runs = int(roots["trace_id"].nunique())
 
     tool_status = Counter()
-    tool_log = LOGS / "tool_calls.jsonl"
+    tool_log = tool_log or LOGS / "tool_calls.jsonl"
     if tool_log.exists():
         for line in tool_log.read_text(encoding="utf-8").splitlines():
             if line.strip():
@@ -68,9 +69,10 @@ def compute(spans_path: Path | None = None) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "producer": "scripts/golden_signals.py",
         "sources": {"spans": str(path.relative_to(ROOT)).replace("\\", "/"),
-                    "span_source": manifest.get("source", "unknown"),
+                    "span_source": span_source or manifest.get("source", "unknown"),
                     "eval_report": "reports/eval_report.json" if ev else None,
-                    "tool_log": "logs/tool_calls.jsonl", "pricing": "config/pricing.yaml",
+                    "tool_log": str(tool_log.relative_to(ROOT)).replace("\\", "/") if tool_log.is_relative_to(ROOT) else str(tool_log),
+                    "pricing": "config/pricing.yaml",
                     "pricing_as_of": get_settings().pricing.get("as_of")},
         "traffic": {"runs": runs, "spans": int(len(df)), "llm_calls": int(len(llm)), "tool_calls": int(len(tools))},
         "latency_ms": {
@@ -101,8 +103,8 @@ def compute(spans_path: Path | None = None) -> dict:
     if not len(llm):
         report["notes"] = ["No LLM spans in this export: the run used rules-only mode (no GOOGLE_API_KEY), so "
                            "thinking latency, tokens and cost are zero. Re-run regenerate_all with a key."]
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    (out or OUT).parent.mkdir(parents=True, exist_ok=True)
+    (out or OUT).write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
 
 

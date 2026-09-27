@@ -46,6 +46,22 @@
 | Audit | `src/audit/audit.py` | `logs/agent_actions.jsonl` |
 | Interfaces | `src/cli.py`, `src/api/app.py` | CLI (run / chat / forget); FastAPI SSE streaming (bonus) |
 
+## Why the supervisor routes by rules
+
+The supervisor's routing function (`src/agents/supervisor.py::decide`) is deterministic by design. The model does the
+language understanding: Gemini produces the structured `IntakeClassification`, grades retrieval and writes the
+wording. The routing *decision* over those typed facts is code, for four reasons:
+
+1. **Safety must not depend on sampling.** An urgent or clinical case goes to `human_escalation` every time,
+   whatever the model returns later. `tests/test_routing.py` asserts this for every branch.
+2. **Auditability.** Each route is logged with a reason in `logs/agent_actions.jsonl`, and the same state always
+   gives the same route.
+3. **Cost and latency.** A routing LLM call per supervisor step would roughly double LLM traffic for no quality
+   gain. See `reports/golden_signals.json`.
+4. **Model judgement is still in the loop where it helps.** Classification, relevance grading, summarisation, memory
+   extraction and drafting are all Gemini. Deterministic nets (`apply_safety_net`, `apply_service_net`) can only
+   make those outputs *safer* or more consistent (F-07 in `docs/failure-analysis.md`).
+
 ## Context-engineering map
 
 | Strategy | Implementation |

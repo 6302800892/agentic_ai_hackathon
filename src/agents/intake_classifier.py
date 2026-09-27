@@ -1,7 +1,9 @@
 """Intake-classification agent: reason for visit, intent, urgency, service code, stated preferences.
 
-Gemini-light with structured output (IntakeClassification). A deterministic red-flag / clinical-question
-safety net always runs and can only make the result *safer* (escalate), never less safe.
+Gemini-light with structured output (IntakeClassification). Two deterministic nets always run:
+  * safety net  - red flags / clinical questions can only make the result *safer* (escalate), never less safe;
+  * service net - a scheduling/referral/coverage request that names a clinical service is never left as
+                  ADMIN/UNKNOWN (docs/failure-analysis.md F-07).
 """
 from __future__ import annotations
 
@@ -10,6 +12,7 @@ import re
 from langchain_core.messages import HumanMessage
 
 from src.agents import heuristics
+from src.audit.audit import audit
 from src.context.isolate import merge_result
 from src.context.select import context_for_classifier
 from src.state import CopilotState, IntakeClassification
@@ -32,6 +35,19 @@ def apply_safety_net(result: IntakeClassification, rules: IntakeClassification, 
     return result
 
 
+SERVICE_INTENTS = {"schedule", "referral", "coverage_question"}
+VAGUE_SERVICES = {"ADMIN", "UNKNOWN"}
+
+
+def apply_service_net(result: IntakeClassification, rules: IntakeClassification) -> IntakeClassification:
+    """F-07: if the model gives ADMIN/UNKNOWN for a service request but the text names a specific clinical
+    service, use the rules' category and service code."""
+    if result.intent in SERVICE_INTENTS and result.service_code in VAGUE_SERVICES             and rules.service_code not in VAGUE_SERVICES:
+        return result.model_copy(update={"reason_for_visit_category": rules.reason_for_visit_category,
+                                         "service_code": rules.service_code})
+    return result
+
+
 async def run(state: CopilotState, runtime) -> dict:
     q = state["quarantined_input"]
     history = _history_text(state)
@@ -45,4 +61,9 @@ async def run(state: CopilotState, runtime) -> dict:
                                            "stated_preferences": result.stated_preferences or rules.stated_preferences})
     guard = state.get("guard_input")
     result = apply_safety_net(result, rules, guard.flags if guard else [])
+    fixed = apply_service_net(result, rules)
+    if fixed is not result:
+        audit("intake_classifier", "route", "service_net_override",
+              reason=f"{result.service_code} -> {fixed.service_code} ({fixed.reason_for_visit_category})")
+        result = fixed
     return merge_result("intake_classifier", {"intake": result})

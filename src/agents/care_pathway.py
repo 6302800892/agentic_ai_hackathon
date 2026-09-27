@@ -1,7 +1,8 @@
 """Care-pathway retrieval agent - agentic RAG (retrieval-in-the-loop).
 
   round 1..N (N = rag_max_rounds):  retrieve (search_care_policy)  ->  grade relevance (Gemini-light,
-  structured RelevanceGrade; rule-based grade if no model)  ->  if insufficient, rewrite the query and retrieve again.
+  structured RelevanceGrade; rule-based grade if no model, or when rag_llm_grading=on_rule_miss and the rules
+  already found the expected pathway policy)  ->  if insufficient, rewrite the query and retrieve again.
 Then a targeted retrieval for any coverage gap / referral rule so the draft can cite COV-001 / REF-001.
 If no care-pathway policy is found after N rounds -> pathway_id="NONE" (supervisor escalates; never invented).
 """
@@ -62,9 +63,14 @@ async def run(state: CopilotState, runtime) -> dict:
             break
         chunks = res.data["chunks"]
         found.update({c["chunk_id"]: c for c in chunks})
-        grade = await runtime.structured(RelevanceGrade, context_for_grader(query, chunks), light=True, agent=AGENT)
-        # the model may judge relevance, but a pathway policy must actually be present to stop
         rules = rule_grade(chunks, hint, intake)
+        # rag_llm_grading: "always" asks Gemini to grade every round; "on_rule_miss" skips the LLM call when the
+        # deterministic check already found the expected pathway policy (scripts/optimization_benchmark.py)
+        if limits.get("rag_llm_grading", "always") == "on_rule_miss" and rules.relevant:
+            grade = rules
+        else:
+            grade = await runtime.structured(RelevanceGrade, context_for_grader(query, chunks), light=True, agent=AGENT)
+        # the model may judge relevance, but a pathway policy must actually be present to stop
         if grade is None or (grade.relevant and not rules.relevant):
             grade = rules
         if grade.relevant:

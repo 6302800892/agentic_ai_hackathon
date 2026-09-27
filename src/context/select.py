@@ -30,6 +30,9 @@ Classify the patient's CURRENT request (use earlier turns only as context).
     severe bleeding, fainting, seizure, suicidal thoughts/self-harm, overdose, anaphylaxis.
   * clinical_question = asks what condition they have, whether it is serious, or which medication/dose.
   * referral = asks for a specialist (dermatology, cardiology). admin = records, billing, reschedule, cancel.
+  * ADMIN category/service is ONLY for records, billing, rescheduling or cancelling. A question about whether a
+    clinical service is covered uses THAT service's category and service_code
+    (e.g. "is physiotherapy covered?" -> coverage_question, MSK, PHYSIO).
   * out_of_scope = unrelated to healthcare coordination. ambiguous = cannot tell what they need.
 - reason_for_visit_category: MSK | DERM | CARDIO | MENTAL_HEALTH | PEDS | ADMIN | GENERAL | UNKNOWN (PEDS if patient under 16)
 - service_code: PRIMARY_CARE | PHYSIO | DERM_REFERRAL | CARDIO_REFERRAL | MENTAL_HEALTH | PEDIATRICS | IMAGING_MRI | ADMIN | UNKNOWN
@@ -44,7 +47,8 @@ COORDINATOR_SYS = f"""{NO_DIAGNOSIS}
 {DATA_RULE}
 Write the wording for an ALREADY-DECIDED next step. Do not change the action. patient_message: short, warm,
 plain language, no diagnosis, mention the cited policy only by its id in staff_note. staff_note: concise note for
-the care coordinator listing coverage gaps with their rule ids and the policy citations. rationale: one sentence."""
+the care coordinator listing coverage gaps with their rule ids and the policy citations. rationale: one sentence.
+If coverage_answer is provided, the patient_message must START with that sentence."""
 
 SUMMARY_SYS = ("Summarise the earlier conversation for a care coordinator in <=80 words: requests made, facts "
                "stated (symptom location, preferences, who the patient is booking for), outcomes. No diagnosis. "

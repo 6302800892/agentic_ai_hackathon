@@ -99,7 +99,7 @@ class JsonlSpanExporter(SpanExporter):
         pass
 
 
-def init_tracing(launch_ui: bool = True, project: str | None = None) -> TracerProvider:
+def init_tracing(launch_ui: bool = True, project: str | None = None, mirror_path: Path | None = None) -> TracerProvider:
     """Initialise tracing once per process. Returns the TracerProvider (idempotent)."""
     if _state["provider"] is not None:
         return _state["provider"]
@@ -130,7 +130,7 @@ def init_tracing(launch_ui: bool = True, project: str | None = None) -> TracerPr
             endpoint=f"{endpoint.rstrip('/')}/v1/traces", headers=auth_headers(), timeout=30))))
         _state["endpoint"] = endpoint
         log.info("Exporting spans to Phoenix at %s (auth: %s)", endpoint, "api key" if auth_headers() else "none")
-    provider.add_span_processor(SimpleSpanProcessor(MaskingExporter(JsonlSpanExporter())))
+    provider.add_span_processor(SimpleSpanProcessor(MaskingExporter(JsonlSpanExporter(mirror_path or LIVE_SPANS))))
     trace.set_tracer_provider(provider)
 
     try:

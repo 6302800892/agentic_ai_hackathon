@@ -124,3 +124,27 @@ def test_retry_delay_is_read_from_provider_429():
     err = RuntimeError("429 RESOURCE_EXHAUSTED. {'error': {'details': [{'retryDelay': '57s'}]}}")
     assert is_rate_limited(err) and retry_delay_seconds(err) == 58.0
     assert retry_delay_seconds(RuntimeError("503 UNAVAILABLE")) is None
+
+
+@pytest.mark.parametrize("mode,expected_grader_calls", [("always", 1), ("on_rule_miss", 0)])
+async def test_rule_first_grading_skips_llm_when_rules_confirm_policy(monkeypatch, mode, expected_grader_calls):
+    """scripts/optimization_benchmark.py: with on_rule_miss the LLM grader is not called when the pathway policy is found."""
+    from src.agents import care_pathway
+    from src.state import RelevanceGrade
+    from src.tools.rag_tool import KeywordIndex, build_rag_tool, load_chunks
+    from tests.conftest import intake
+
+    monkeypatch.setitem(get_settings().limits, "rag_llm_grading", mode)
+    grader_calls = []
+
+    class FakeRuntime:
+        rag_tool_name = "search_care_policy"
+        tools = ToolExecutor({"search_care_policy": build_rag_tool(KeywordIndex(load_chunks()))})
+
+        async def structured(self, schema, messages, **kw):
+            grader_calls.append(schema)
+            return RelevanceGrade(relevant=True)
+
+    out = await care_pathway.run({"intake": intake("schedule"), "errors": []}, FakeRuntime())
+    assert out["pathway"].pathway_id == "CP-MSK-002"
+    assert len([c for c in grader_calls if c is RelevanceGrade]) == expected_grader_calls

@@ -142,6 +142,17 @@ def build_report(results: list[dict], *, system_model: str, judge_model: str | N
             judge_agg[name] = {"mean_score": round(mean(v["score"] for v in vals), 4),
                                "pass_rate": round(mean(1.0 if v["success"] else 0.0 for v in vals), 4),
                                "n": len(vals), "threshold": THRESHOLDS[name]}
+    # Relevancy is also reported on the cases where a direct answer is the intended behaviour; the overall
+    # figure above stays the headline number (refusals / escalations deliberately don't answer the request).
+    answerable = [r["judge"]["answer_relevancy"] for r in results
+                  if r["expected"]["expected_action"] in ("schedule", "refer")
+                  and "score" in r["judge"].get("answer_relevancy", {})]
+    if answerable and "answer_relevancy" in judge_agg:
+        judge_agg["answer_relevancy"]["answerable_subset"] = {
+            "definition": "cases whose expected_action is schedule or refer",
+            "mean_score": round(mean(v["score"] for v in answerable), 4),
+            "pass_rate": round(mean(1.0 if v["success"] else 0.0 for v in answerable), 4),
+            "n": len(answerable)}
     hall = judge_agg.get("hallucination")
     report = {
         "generated_at": generated_at or datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -159,8 +170,9 @@ def build_report(results: list[dict], *, system_model: str, judge_model: str | N
                               "the output (score_qag_verdicts with passing=YES): higher is better, a case passes when "
                               "score >= threshold. hallucination_rate = share of cases that fail; "
                               "hallucination_contradiction_share = 1 - mean agreement."),
-            "answer_relevancy": ("Refusals, clarifications and escalations deliberately do not answer the literal "
-                                 "request, which lowers answer relevancy by design (see case reasons)."),
+            "answer_relevancy": ("Judged on the patient-facing message only (from the F-07 fix onward; earlier reports "
+                                 "included the internal staff note). Refusals, clarifications and escalations "
+                                 "deliberately do not answer the literal request, which also lowers this score."),
         },
         "thresholds": {**THRESHOLDS, "escalation_recall": 1.0, "accuracy": 0.8},
         "gates": {"escalation_recall_is_1": agg["escalation_recall"] == 1.0, "accuracy_ge_0.8": agg["accuracy"] >= 0.8},
@@ -169,11 +181,12 @@ def build_report(results: list[dict], *, system_model: str, judge_model: str | N
     return report
 
 
-async def run_eval(cp, judge: bool | None = None, max_cases: int | None = None, verbose: bool = True) -> dict:
+async def run_eval(cp, judge: bool | None = None, max_cases: int | None = None, verbose: bool = True,
+                   cases_filter: set[str] | None = None, out: Path | None = None) -> dict:
     s = get_settings()
     judge = s.has_llm if judge is None else (judge and s.has_llm)
     chunks = {c["chunk_id"]: c["text"] for c in load_chunks()}
-    cases = read_jsonl(GOLDEN)[: max_cases or None]
+    cases = [c for c in read_jsonl(GOLDEN) if not cases_filter or c["id"] in cases_filter][: max_cases or None]
     metrics = make_metrics(make_judge()) if judge else {}
     results = []
 
@@ -195,10 +208,15 @@ async def run_eval(cp, judge: bool | None = None, max_cases: int | None = None, 
             tc = LLMTestCase(input=row["input_masked"], actual_output=final.patient_message + "\n\nStaff note: " +
                              final.staff_note, retrieval_context=retrieval or ["(no policy retrieved)"],
                              context=retrieval or ["(no policy retrieved)"])
+            # relevancy is judged on what the PATIENT sees; the staff note (policy codes for coordinators) is
+            # still checked by hallucination/faithfulness, which must see every claim (docs/failure-analysis.md F-07)
+            tc_patient = LLMTestCase(input=row["input_masked"], actual_output=final.patient_message,
+                                     retrieval_context=tc.retrieval_context, context=tc.context)
             for name, m in metrics.items():
+                case_tc = tc_patient if name == "answer_relevancy" else tc
                 try:
                     # hard wall-clock cap per metric so one stuck judge call cannot stall the run
-                    await asyncio.wait_for(asyncio.to_thread(m.measure, tc), timeout=JUDGE_METRIC_TIMEOUT_S)
+                    await asyncio.wait_for(asyncio.to_thread(m.measure, case_tc), timeout=JUDGE_METRIC_TIMEOUT_S)
                     row["judge"][name] = {"score": round(float(m.score), 4), "success": bool(m.is_successful()),
                                           "reason": (m.reason or "")[:500]}
                 except asyncio.TimeoutError:
@@ -213,17 +231,24 @@ async def run_eval(cp, judge: bool | None = None, max_cases: int | None = None, 
 
     report = build_report(results, judge_model=f"gemini:{s.gemini_model}" if metrics else None,
                           system_model=s.gemini_model if s.has_llm else "rules-only (no GOOGLE_API_KEY)")
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    out = out or OUT
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
     return report
 
 
 async def _main(a):
+    import tempfile
+
     from src.observability.tracing import flush, init_tracing
     from src.service import Copilot
-    init_tracing(launch_ui=False)
-    async with Copilot() as cp:
-        rep = await run_eval(cp, judge=not a.no_judge, max_cases=a.max_cases)
+    init_tracing(launch_ui=False, mirror_path=Path(a.mirror) if a.mirror else None)
+    with tempfile.TemporaryDirectory() as tmp:
+        kw = {"checkpoint_path": Path(tmp) / "cp.sqlite", "memory_path": Path(tmp) / "mem.sqlite"} if a.out else {}
+        async with Copilot(**kw) as cp:
+            rep = await run_eval(cp, judge=not a.no_judge, max_cases=a.max_cases,
+                                 cases_filter=set(a.cases.split(",")) if a.cases else None,
+                                 out=Path(a.out) if a.out else None)
     flush()
     print(json.dumps({"aggregate": rep["aggregate"], "judge": rep["judge_aggregate"],
                       "hallucination_rate": rep["hallucination_rate"]}, indent=2))
@@ -244,6 +269,9 @@ if __name__ == "__main__":
     ap.add_argument("--max-cases", type=int)
     ap.add_argument("--no-judge", action="store_true")
     ap.add_argument("--rescore", action="store_true", help="re-aggregate the saved report without re-running")
+    ap.add_argument("--cases", help="comma-separated golden ids, e.g. G-18,G-19")
+    ap.add_argument("--out", help="write the report here instead of reports/eval_report.json (uses a temp memory store)")
+    ap.add_argument("--mirror", help="span mirror path (keeps traces/otel_spans_live.jsonl untouched)")
     a = ap.parse_args()
     if a.rescore:
         r = rescore()

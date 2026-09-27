@@ -14,6 +14,18 @@ from src.context.select import context_for_coordinator
 from src.state import CopilotState, DraftText, ErrorRecord, NextStepDraft
 
 AGENT = "coordinator"
+SERVICE_LABEL = {"PRIMARY_CARE": "A primary-care visit", "PHYSIO": "Physiotherapy", "DERM_REFERRAL": "Dermatology",
+                 "CARDIO_REFERRAL": "Cardiology", "MENTAL_HEALTH": "Mental-health counselling",
+                 "PEDIATRICS": "A paediatric visit", "IMAGING_MRI": "An MRI scan"}
+
+
+def coverage_answer(state: CopilotState) -> str | None:
+    """F-07: an eligible coverage question is answered explicitly before any booking offer."""
+    intake, cov = state["intake"], state.get("coverage")
+    if intake.intent == "coverage_question" and cov and cov.eligible:
+        label = SERVICE_LABEL.get(cov.service_code, cov.service_code.replace("_", " ").title())
+        return f"Good news: {label} is covered under your plan."
+    return None
 
 
 def decide_action(state: CopilotState) -> dict:
@@ -51,6 +63,7 @@ def _template(decided: dict, state: CopilotState, slot: dict | None, period: str
     when = f"{slot['clinic']} on {slot['start'].replace('T', ' at ')}" if slot else "the next available slot"
     pref = f" (matching your preference for {period}s)" if period and slot and slot.get("period") == period else ""
     a = decided["action"]
+    answer = coverage_answer(state)
     if a == "escalate":
         msg = ("I wasn't able to confirm coverage for this service, so I've passed your request to our coverage "
                "team. They'll contact you about the options - no booking has been made yet.")
@@ -65,6 +78,8 @@ def _template(decided: dict, state: CopilotState, slot: dict | None, period: str
     else:
         msg = (f"I can offer an appointment at {when}{pref}. A member of the care team will confirm the booking "
                f"with you.")
+        if answer:
+            msg = f"{answer} {msg}"
     gaps = "; ".join(f"{g.rule_id}: {g.description}" for g in cov.gaps) if cov and cov.gaps else "none"
     cites = ", ".join(f"{c.policy_id} {c.section}" for c in state["pathway"].citations)
     note = (f"intent={state['intake'].intent}; pathway={pathway}; action={a} -> {decided['target']}; "
@@ -90,9 +105,13 @@ async def run(state: CopilotState, runtime) -> dict:
     template = _template(decided, state, slot, period)
     text = await runtime.structured(DraftText, context_for_coordinator(
         state, {"decided_action": decided["action"], "route_to": decided["target"], "proposed_slot": slot,
-                "preference_applied": period, "template_patient_message": template.patient_message}),
+                "preference_applied": period, "coverage_answer": coverage_answer(state),
+                "template_patient_message": template.patient_message}),
         agent=AGENT)
     text = text or template
+    answer = coverage_answer(state)
+    if answer and "covered" not in text.patient_message.split(".")[0].lower():
+        text = text.model_copy(update={"patient_message": f"{answer} {text.patient_message}"})
 
     draft = NextStepDraft(action=decided["action"], rationale=text.rationale, citations=state["pathway"].citations,
                           requires_clinician=False, patient_message=text.patient_message,

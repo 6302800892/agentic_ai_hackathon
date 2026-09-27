@@ -1,10 +1,10 @@
 {
   "producer": "scripts/verify_citations.py",
   "checked": {
-    "paths": 301,
-    "run_ids": 6,
-    "span_ids": 9,
-    "line_refs": 6
+    "paths": 325,
+    "run_ids": 7,
+    "span_ids": 12,
+    "line_refs": 8
   },
   "known_run_ids": 302,
   "known_span_ids": 2693,
